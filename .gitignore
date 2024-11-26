@@ -1,0 +1,22 @@
+# Ignore Python bytecode files
+*.pyc
+__pycache__
+
+# Ignore environment directories
+venv/
+.env
+
+# Ignore VSCode settings
+.vscode/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore temporary background cache
+cache/
+
+data_files/
+plot.html
+plot.json
+Project_priorities.txt
