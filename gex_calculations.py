@@ -2,6 +2,8 @@ import pandas as pd
 from api_data import API_Handler
 import numpy as np
 
+#testtestjshs
+
 class GEXCalculator:
 
     def __init__(self, data, underlying_price, contract_size=100):
