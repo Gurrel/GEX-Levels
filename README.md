@@ -14,7 +14,14 @@ The program fetches live data from the yfinance API and calculates Gamma Exposur
   <li>Visualization: The results are plotted and displayed dynamically on a dashboard.</li>
 </ul>
 
-https://github.com/user-attachments/assets/3314094c-b052-484b-8b54-2ff24046aa98
+
+
+https://github.com/user-attachments/assets/9d74b34b-85c6-470d-a5d6-003cb57a032a
+
+<H2>Important</H2>
+To run the code you need a api key from the MarketData App API
+
+
 
 
 
