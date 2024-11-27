@@ -66,13 +66,13 @@ class DashController:
             dcc.Store(id="ticker-store", data=["SPX", "indices"]),
             dcc.Store(id="slider-max-value-store", data=0),
             html.Div(id="interval-container", children=dcc.Interval(id='interval-component', interval=30*1000, n_intervals=0, max_intervals=0)),
-            dcc.Interval(id="slider-play-interval", interval=2*1000, n_intervals=0, disabled=True),
+            dcc.Interval(id="slider-play-interval", interval=1*1000, n_intervals=0, disabled=True),
             main_content
             ], style={"display": "flex", "height": "100vh"})
         
     def run_server(self):
-        """Runs the Dash app server with debugging enabled."""
-        self.app.run_server(debug=True)
+        """Runs the Dash app server"""
+        self.app.run_server()
 
 
     def handle_data_fetching(self):
@@ -93,18 +93,13 @@ class DashController:
         )
         def update_data_every_minute(n_intervals, gex_record_list, interval, ticker_data, slider_max_value):
 
-            print(interval)
             ticker = ticker_data[0]
             security_type = ticker_data[1]
 
-            print("time sleep done")
-
             gex_minute_snapshot = fetch_new_gex_snapshot(ticker, security_type)
-            print("gex_minute_snapshot")
             gex_record_list.append(gex_minute_snapshot)
 
             slider_max_value = len(gex_record_list)-1
-            print(f"slider max value: {slider_max_value}")
 
             new_interval = dcc.Interval(id="interval-component", interval=(seconds_until_next_utc_minute()*1000), n_intervals=0, max_intervals=1)
             return gex_record_list, new_interval, slider_max_value
@@ -130,31 +125,24 @@ class DashController:
             Input("backward-btn", "n_clicks"),
             State("slider-comp", "max"),
             prevent_initial_call=True,
-            #State("interval-component", "n_intervals"),
             
         )
         def change_slider(new_slider_max, slider_value, bkwrd_step_clicks, frwrd_step_clicks, play_pause_clicks, playing_intervals, frwrd_clicks, bkwrd_clicks, current_slider_max):
 
-            #print("interval SLIDER")
             input_triggered_id = ctx.triggered_id
 
-            print(f"pause_clicks {play_pause_clicks}")
             playing = (play_pause_clicks % 2 == 1)
-            print(f"playing: {playing}")
 
             # Handle play/pause button click
             if input_triggered_id == "play-pause-btn" and not playing:
-                print("first if statement")
                 return dash.no_update, dash.no_update, True, dash.no_update
 
             # Handle slider value and play state updates
             if playing and (slider_value != current_slider_max):
                 
-                print("if statement: playing and (slider_value != slider_max)")
                 slider_value += 1
 
                 if slider_value == current_slider_max:
-                    print("second if statement")
                     play_pause_clicks += 1
                     return dash.no_update, slider_value, True, play_pause_clicks
 
@@ -253,20 +241,13 @@ class DashController:
         )
         def display_data(drag_value, data, relayoutData, slider_max):
 
-            print(f"display data: {drag_value}")
 
             if slider_max == 0:
                 raise PreventUpdate
 
             gex_snapshot = data[drag_value]
-
-            #print(relayoutData)
-
-            print(drag_value, "display data activated")
-            
-            
+      
             plot = gex_snapshot["plot"]
-            plot = update_plot_axis_range(plot, relayoutData)
             plot = json.loads(plot)
 
             date = gex_snapshot["date"]
@@ -325,7 +306,7 @@ def sidebar_information(info_name, info, id):
             ])
     return sidebar_info
 
-slider = dcc.Slider(min=0, max=0, step=1, value=0, id="slider-comp")
+slider = dcc.Slider(min=0, max=0, step=1, value=0, id="slider-comp", marks=None)
 
 play_icon = html.I(className="fa-solid fa-play")
 pause_icon = html.I(className="fa-solid fa-pause")
@@ -477,82 +458,7 @@ def get_security_type(ticker):
         # Handle potential errors (e.g., invalid ticker, network issues)
         print(f"Error retrieving information for ticker {ticker}: {e}")
         return 'not_a_stock_or_index'
-
-def update_plot_axis_range(plot, relayoutData):
-    """
-    Updates the plot's axis ranges based on the zoom or pan state from the relayout data.
-
-    Parameters:
-    plot (str): The plot represented as a JSON string.
-    relayoutData (dict): A dictionary containing the new axis ranges, 
-                          such as the range for x and y axes, or autorange options.
-
-    Returns:
-    str: The updated plot in JSON format with adjusted axis ranges.
-    """
-    if relayoutData is None:
-        return plot
     
-    # Extract axis range values from relayoutData
-    xaxis_left = relayoutData.get("xaxis.range[0]")
-    xaxis_right = relayoutData.get("xaxis.range[1]")
-    yaxis_bottom = relayoutData.get("yaxis.range[0]")
-    yaxis_top = relayoutData.get("yaxis.range[1]")
-
-    # Check if the axes have been zoomed or panned
-    zoomed_or_panned = (xaxis_left != None and xaxis_right != None and yaxis_bottom != None and yaxis_top != None)
-
-    if zoomed_or_panned:
-
-        fig = pio.from_json(plot)
-
-        fig.update_yaxes(
-            range=[yaxis_bottom, yaxis_top]
-        )
-        fig.update_xaxes(
-            range=[xaxis_left, xaxis_right]
-        )
-        return pio.to_json(fig)
-
-    # Check if axes are set to autorange
-    xaxis_autorange = relayoutData.get("xaxis.autorange")
-    yaxis_autorange = relayoutData.get("yaxis.autorange")
-    autoranged = (xaxis_autorange == True and yaxis_autorange == True and len(relayoutData) == 2)
-
-    if autoranged:
-
-        fig = pio.from_json(plot)
-
-        fig.update_yaxes(
-            autorange=True
-        )
-        fig.update_xaxes(
-            autorange=True
-        )
-        return pio.to_json(fig)
-
-    xaxis_range = relayoutData.get("xaxis.range")
-    xaxis_showspikes = relayoutData.get("xaxis.showspikes")
-    yaxis_showspikes = relayoutData.get("yaxis.showspikes")
-
-    # Check if axes are reset (showspikes is False)
-    axis_is_reset = (xaxis_showspikes == False and yaxis_showspikes == False)
-
-    if axis_is_reset:
-
-        fig = pio.from_json(plot)
-
-        fig.update_yaxes(
-            autorange=True,
-            showspikes=False
-        )
-        fig.update_xaxes(
-            range=[-8.5, -8.5],
-            showspikes=False
-        )
-        return pio.to_json(fig)
-
-    return plot
     
 def fetch_new_gex_snapshot(ticker, security_type):
     """

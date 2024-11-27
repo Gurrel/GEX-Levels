@@ -1,13 +1,9 @@
-import os
-from dotenv import load_dotenv
 import requests
 import pandas as pd
 import pytz
 from datetime import datetime, timezone, timedelta
 import tzlocal
 
-load_dotenv()
-api_key = os.getenv('API_KEY')
 
 class API_Handler:
     """
@@ -239,12 +235,3 @@ def convert_datetime_to_local_time(datetime_object):
     local_datetime = utc_datetime.astimezone(local_timezone)
 
     return local_datetime
-
-
-'''
-new_api= API_Handler(api_key, "AAPL", "stocks", 10)
-
-new_api.fetch_all_data_to_attributes()
-
-print(new_api.options_data)
-'''
