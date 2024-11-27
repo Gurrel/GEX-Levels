@@ -2,7 +2,6 @@ import pandas as pd
 from api_data import API_Handler
 import numpy as np
 
-#testtestjshs
 
 class GEXCalculator:
 

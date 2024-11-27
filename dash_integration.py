@@ -415,16 +415,35 @@ def seconds_until_next_utc_minute():
     return int(delta.total_seconds()) 
 
 def get_security_type(ticker):
+    """
+    Checks if the ticker is an index or a stock.
 
-    security_info = yf.Ticker(ticker).info
-    security_type = security_info.get('quoteType')
+    Parameters:
+    ticker (str): The ticker of a security (e.g., 'AAPL' for Apple Inc.)
 
-    if security_type in ('INDEX', 'MUTUALFUND'):
-        return 'indices'
-    elif security_type in ('EQUITY', 'ETF'):
-        return 'stocks'
-    else:
-        print(f'This is not a valid ticker {ticker}')
+    Returns:
+    str:
+        - 'indices' if the security is classified as an INDEX or MUTUALFUND
+        - 'stocks' if the security is classified as an EQUITY or ETF
+        - 'not_a_stock_or_index' if it doesn't match with these classifications
+    """
+    try:
+        # Get security info using yfinance
+        security_info = yf.Ticker(ticker).info
+        security_type = security_info.get('quoteType')
+
+        # Check the type of security
+        if security_type in ('INDEX', 'MUTUALFUND'):
+            return 'indices'
+        elif security_type in ('EQUITY', 'ETF'):
+            return 'stocks'
+        else:
+            print(f'This ticker "{ticker}" is neither an index nor a stock.')
+            return 'not_a_stock_or_index'
+
+    except Exception as e:
+        # Handle potential errors (e.g., invalid ticker, network issues)
+        print(f"Error retrieving information for ticker {ticker}: {e}")
         return 'not_a_stock_or_index'
 
 def update_plot_axis_range(plot, relayoutData):
