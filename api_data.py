@@ -1,13 +1,10 @@
 import os
 from dotenv import load_dotenv
 import requests
-import json
-import yfinance as yf
 import pandas as pd
 import pytz
 from datetime import datetime, timezone, timedelta
 import tzlocal
-import logging
 
 load_dotenv()
 api_key = os.getenv('API_KEY')
@@ -97,7 +94,7 @@ class API_Handler:
 
     def fetch_security_quote(self):
         """
-        Fetches the API data for the security of the ticker from yfinance
+        Fetches the API data for the security of the ticker from the Market Data API
 
         Returns:
         float: The quote of the ticker if the response was successful (status code 200 or 203)
@@ -105,7 +102,6 @@ class API_Handler:
         """
         url = f'https://api.marketdata.app/v1/{self.security_type}/quotes/{self.ticker}/'
 
-        # Making the GET request to the API
         response = requests.get(url, headers=self.headers)
 
         if response_successful(response):
@@ -127,9 +123,6 @@ def create_df_from_api_data(data):
     pd.DataFrame: The DataFrame containing the processed option contract data.
     """
     number_of_contracts = len(data["optionSymbol"])
-
-    with open(f'data_files/data2.json', 'w', encoding='utf-8') as file:
-        json.dump(data, file, ensure_ascii=False, indent=5)
 
     option_dict = {
         "option_type": [],

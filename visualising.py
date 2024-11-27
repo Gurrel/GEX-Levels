@@ -2,16 +2,44 @@ import plotly.graph_objects as go
 import pandas as pd
 
 class Visualizer:
+    """
+    Visualizes Gamma Exposure (GEX) data for options contracts.
+    Generates interactive bar and scatter plots using Plotly to illustrate the relationship 
+    between Gamma Exposure, strike prices, and other key metrics.
+
+    Attributes:
+    -----------
+    fig (go.Figure): 
+        The Plotly figure object that holds the visualization.
+    vol_spot_GEXs (pd.Series): 
+        Gamma Exposure values by volume for each strike price, adjusted for visualization limits.
+    OI_spot_GEXs (pd.Series): 
+        Gamma Exposure values by open interest for each strike price, adjusted for visualization limits.
+    underlying_price (float): 
+        Current price of the underlying security.
+    zero_gamma (float): 
+        The strike price where net gamma crosses zero.
+    spot_price (float): 
+        Current spot price of the underlying security.
+    ticker (str): 
+        The ticker symbol of the security being visualized.
+    config (dict): 
+        Configuration settings for the Plotly figure's interactive behavior.
+    """
 
     def __init__(self, vol_spot_GEXs, OI_spot_GEXs, underlying_price, zero_gamma, spot_price, ticker):
-
         """
-        self.fig:  The graph object that will render the chart
-        vol_spot_GEXs: a DataFrame of volume GEX for each strike price
-        OI_spot_GEXs: a DataFrame of open interest GEX for each strike price
+        Initializes the Visualizer class with data and settings for plotting.
+
+        Parameters:
+        -----------
+        vol_spot_GEXs (pd.Series): Gamma exposure by volume for each strike price.
+        OI_spot_GEXs (pd.Series): Gamma exposure by open interest for each strike price.
+        underlying_price (float): The current price of the underlying asset.
+        zero_gamma (float): The strike price where the gamma exposure crosses zero.
+        spot_price (float): The current spot price of the underlying asset.
+        ticker (str): The ticker symbol of the underlying asset.
         """
-
-
         self.fig = go.Figure()
         self.vol_spot_GEXs = limit_spot_GEX_for_plot(vol_spot_GEXs, underlying_price)
         self.OI_spot_GEXs =  limit_spot_GEX_for_plot(OI_spot_GEXs, underlying_price)
@@ -29,9 +57,10 @@ class Visualizer:
 
     def add_bars(self):
         """
-
+        Adds bars to the Plotly figure to visualize Gamma Exposure by volume and open interest.
+        Adds positive and negative GEX values separately for volume and open interest.
+        Also adds lines to mark zero gamma and spot price on the plot.
         """
-
         strikes = self.vol_spot_GEXs.index
         vol_positive_gex = self.vol_spot_GEXs.clip(lower=0)
         vol_negative_gex = self.vol_spot_GEXs.clip(upper=0)
@@ -46,7 +75,6 @@ class Visualizer:
             base=0.3,
             orientation='h',
             name='vol GEX',
-            #hoverlabel='vol GEX',
             marker_color='#C86C6A',
             marker_line_width=0
         ))
@@ -58,7 +86,6 @@ class Visualizer:
             orientation='h',
             name='vol GEX',
             showlegend=False,
-            #hoverlabel='vol GEX',
             marker_color='#C86C6A',
             marker_line_width=0
         ))
@@ -69,7 +96,6 @@ class Visualizer:
             base=0.3,
             orientation='h',
             name='OI GEX',
-            #hoverlabel='OI GEX',
             marker_color='hsl(1.2,45.6%,44.3%)',
             marker_line_width=0
         ))
@@ -81,7 +107,6 @@ class Visualizer:
             orientation='h',
             name='Negative OI GEX',
             showlegend=False,
-            #hoverlabel='OI GEX',
             marker_color='hsl(1.2,45.6%,44.3%)',
             marker_line_width=0
         ))
@@ -110,7 +135,10 @@ class Visualizer:
     
 
     def update_plot(self):
-
+        """
+        Updates the layout of the Plotly figure, including axis titles, gridlines, and annotations.
+        This ensures the plot is visually clear and organized with customized labels and axes.
+        """
         strikes = self.vol_spot_GEXs.index
         xaxis_pos_vals = [0, 2, 4, 6, 8, 10, 15, 20]
         tickvals = get_tickvals(xaxis_pos_vals, space_value=0.3)
@@ -136,12 +164,8 @@ class Visualizer:
             #bargroupgap=0,
             bargap=0.55,
             dragmode='pan',
-            #paper_bgcolor='gray',
-            #plot_bgcolor='gray',
             xaxis=dict(
                 zeroline=False,  # Draw a line at x=0
-                #zerolinecolor='black',  # Color of the zero line
-                #zerolinewidth=2,  # Width of the zero line
                 tickvals=tickvals,
                 ticktext=ticktext,
 
@@ -159,6 +183,7 @@ class Visualizer:
             range=[-8.5, 8.5]
         )
 
+        # Add annotations to label each strike price on the chart in the middle
         for i, m in enumerate(strikes):
             self.fig.add_annotation(dict(font=dict(color='#A7ABB4',size=12),
                                                 x=0,
@@ -169,19 +194,27 @@ class Visualizer:
                                                 xref="x",
                                                 yref="y"))
         
-        
-
-
-    def show_plot(self):
-        self.fig.write_json('plot.json')
-        #self.fig.show(config=self.config)
-    
+ 
     def fetch_plot_in_json(self):
+        """
+        Converts the Plotly figure to a JSON format for easy embedding or sharing.
+
+        Returns:
+        plot_in_json (dict): JSON representation of the Plotly figure.
+        """
         plot_in_json = self.fig.to_json()
         return plot_in_json
 
 def get_ticktext(pos_tickvals):
+    """
+    Generates tick labels for the x-axis, including both positive and negative values.
 
+    Parameters:
+    pos_tickvals (list): List of positive tick values for the x-axis.
+
+    Returns:
+    tick_series (pd.Series): Series containing both negative and positive tick labels.
+    """
     tick_series_pos = pd.Series(pos_tickvals)
     tick_series_neg = -tick_series_pos
     tick_series_neg = tick_series_neg.iloc[::-1]
@@ -190,7 +223,16 @@ def get_ticktext(pos_tickvals):
     return tick_series
 
 def get_tickvals(pos_tickvals, space_value):
+    """
+    Generates tick positions for the x-axis, including both positive and negative values.
 
+    Parameters:
+    pos_tickvals (list): List of positive tick values for the x-axis.
+    space_value (float): The spacing value between ticks on the x-axis.
+
+    Returns:
+    tick_series (pd.Series): Series containing both negative and positive tick positions.
+    """
     tick_series_pos = pd.Series(pos_tickvals)
     tick_series_pos = tick_series_pos + space_value
     tick_series_neg = -tick_series_pos
@@ -200,14 +242,22 @@ def get_tickvals(pos_tickvals, space_value):
     return tick_series
 
     
-
-
-
 def limit_spot_GEX_for_plot(spot_GEX, underlying_price, limit_number=40):
+    """
+    Limits the Gamma Exposure data to a window around the underlying price for better visualization.
 
+    Parameters:
+    spot_GEX (pd.Series): The Gamma Exposure data.
+    underlying_price (float): The price of the underlying asset.
+    limit_number (int): The number of strikes to include around the underlying price.
+
+    Returns:
+    spot_GEX (pd.Series): Limited Gamma Exposure data centered around the underlying price.
+    """
     strike_list = spot_GEX.index.tolist()
     strike_df = pd.DataFrame(strike_list, columns=["strike"])
     closest_index = (strike_df["strike"] - underlying_price).abs().argmin()
+    # Return the range of strikes centered around the closest strike, limited by the limit_number
     spot_GEX = spot_GEX.iloc[closest_index - (limit_number//2) : closest_index + (limit_number//2)]
     return spot_GEX
 

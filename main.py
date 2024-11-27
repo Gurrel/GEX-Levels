@@ -1,18 +1,7 @@
-import os
-from dotenv import load_dotenv
 from dash_integration import DashController
 
-load_dotenv()
-api_key = os.getenv('API_KEY')
-#ticker = 'SPX'
-strike_limit = 200
-contract_size = 100
-
-
-
-
 def main():
-
+    """main function that runs the entire application"""
     dash_controller = DashController()
     dash_controller.create_layout()
     dash_controller.handle_data_fetching()
@@ -23,8 +12,6 @@ def main():
 
     dash_controller.run_server()
 
-
-    
 if __name__ == '__main__':
     main()
 

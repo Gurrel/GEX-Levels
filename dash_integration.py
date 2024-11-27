@@ -10,10 +10,9 @@ import json
 import datetime as dt
 import yfinance as yf
 from api_data import API_Handler
-from gex_calculations import GEXCalculator
-from visualising import Visualizer
-import time
-from dash.exceptions import PreventUpdate
+from gex_calculations import GEXCalculator # Custom module to handle API data fetching
+from visualising import Visualizer # Custom module for GEX calculations
+from dash.exceptions import PreventUpdate # Custom module for visualizing data
 
 load_dotenv()
 api_key = os.getenv('API_KEY')
@@ -25,7 +24,7 @@ cache = diskcache.Cache("./cache")
 background_callback_manager = DiskcacheManager(cache)
 
 
-plot = pio.read_json('plot.json')
+# Config for the plotly chart
 config = {
             'displayModeBar': True,
             'scrollZoom': True,
@@ -33,11 +32,17 @@ config = {
             'modeBarButtons': [['autoScale2d', 'resetScale2d']]
             }
 
+# External stylesheets for the app (uses Font Awesome icons for buttons)
 external_stylesheets=[dbc.icons.FONT_AWESOME]
 
 class DashController:
+    """
+    DashController class to manage the entire Dash app.
+    Includes layout creation, callback handling, and running the server.
+    """
 
     def __init__(self):
+        # Initialize the Dash app with specific settings
         self.app = dash.Dash(
             background_callback_manager=background_callback_manager, 
             suppress_callback_exceptions=True,
@@ -52,9 +57,12 @@ class DashController:
         
 
     def create_layout(self):
-
+        """
+        Defines the layout of the Dash app, which includes stores for managing state,
+        interval components for periodic updates, and the main content of the app.
+        """
         self.app.layout = html.Div([
-            dcc.Store(id="my-store", data=[]),
+            dcc.Store(id="options-data-store", data=[]),
             dcc.Store(id="ticker-store", data=["SPX", "indices"]),
             dcc.Store(id="slider-max-value-store", data=0),
             html.Div(id="interval-container", children=dcc.Interval(id='interval-component', interval=30*1000, n_intervals=0, max_intervals=0)),
@@ -63,17 +71,21 @@ class DashController:
             ], style={"display": "flex", "height": "100vh"})
         
     def run_server(self):
+        """Runs the Dash app server with debugging enabled."""
         self.app.run_server(debug=True)
 
 
     def handle_data_fetching(self):
-
+        """
+        Callback to fetch new GEX data every minute and update the app's state.
+        It fetches a new snapshot of GEX data for the selected ticker.
+        """
         @self.app.callback(
-            Output("my-store", "data"),
+            Output("options-data-store", "data"),
             Output("interval-container", "children"),
             Output("slider-max-value-store", "data"),
             Input("interval-component", "n_intervals"),
-            State("my-store", "data"),
+            State("options-data-store", "data"),
             State("interval-component", "interval"),
             State("ticker-store", "data"),
             State("slider-max-value-store", "data"),                
@@ -99,7 +111,10 @@ class DashController:
 
 
     def handle_slider(self):
-
+        """
+        Callback to handle slider interactions (e.g., play, pause, step forward, step backward).
+        Controls the value of the slider and the play/pause functionality.
+        """
         @self.app.callback(
             Output("slider-comp", "max"),
             Output("slider-comp", "value"),
@@ -127,10 +142,12 @@ class DashController:
             playing = (play_pause_clicks % 2 == 1)
             print(f"playing: {playing}")
 
+            # Handle play/pause button click
             if input_triggered_id == "play-pause-btn" and not playing:
                 print("first if statement")
                 return dash.no_update, dash.no_update, True, dash.no_update
 
+            # Handle slider value and play state updates
             if playing and (slider_value != current_slider_max):
                 
                 print("if statement: playing and (slider_value != slider_max)")
@@ -144,8 +161,7 @@ class DashController:
                 return dash.no_update, slider_value, False, dash.no_update
 
             
-            
-
+            # Handle slider max and forward/backward step changes
             if input_triggered_id == "slider-max-value-store" or input_triggered_id == "slider-comp":
 
                 if slider_value < current_slider_max:
@@ -153,6 +169,7 @@ class DashController:
                 
                 return new_slider_max, new_slider_max, True, dash.no_update
             
+            # Handle forward step and backward step button clicks
             if input_triggered_id == "backward-step-btn":
                 slider_value = 0
                 return dash.no_update, slider_value, True, dash.no_update
@@ -161,6 +178,7 @@ class DashController:
                 slider_value = new_slider_max
                 return dash.no_update, slider_value, True, dash.no_update
             
+            # Handle forward and backward button clicks
             if input_triggered_id == "forward-btn":
                 slider_value += 1
                 return dash.no_update, slider_value, True, dash.no_update
@@ -169,13 +187,12 @@ class DashController:
                 slider_value -= 1
                 return dash.no_update, slider_value, True, dash.no_update            
                 
-            
-
-
-        
-
+    
     def handle_ticker(self):
-
+        """
+        Callback to handle ticker input changes, fetch the corresponding security type,
+        and update the ticker data.
+        """
         @self.app.callback(
                 Output("ticker-store", "data"),
                 Input("search-btn", "n_clicks"),
@@ -197,7 +214,9 @@ class DashController:
             return [new_ticker, security_type]
         
     def handle_slider_btns(self):
-
+        """
+        Callback to change the play/pause button icon based on the number of clicks.
+        """
         @self.app.callback(
             Output("play-pause-btn", "children"),
             Input("play-pause-btn", "n_clicks"),
@@ -211,7 +230,10 @@ class DashController:
             
 
     def display_gex_data(self):
-
+        """
+        Callback to update the GEX graph and display relevant data such as date, time,
+        spot price, gamma values, and open interest.
+        """
         @self.app.callback(
             Output("gex-graph", "figure"),
             Output("date-var", "children"),
@@ -225,7 +247,7 @@ class DashController:
             Output("maj-neg-oi-var", "children"),
             Output("net-oi-gex-var", "children"),
             Input("slider-comp", "drag_value"),
-            State("my-store", "data"),
+            State("options-data-store", "data"),
             State("gex-graph", "relayoutData"),
             State("slider-max-value-store", "data"),
         )
@@ -266,7 +288,7 @@ class DashController:
 
 
 
-
+""" ALL THE HTML COMPONENTS SAVED AS VARIABLES """
 
 ticker_input = dcc.Input(
     className="ticker_input",
@@ -407,8 +429,18 @@ main_content = html.Div(className="main_container", children=[
         
 
 
-# Function to calculate the milliseconds until the next UTC minute
 def seconds_until_next_utc_minute():
+    """
+    Calculates the number of seconds until the next UTC minute.
+
+    This function determines the time difference between the current time 
+    (in UTC) and the start of the next minute. It returns the difference 
+    in seconds, which can be used to set timers or delays that sync with 
+    the next minute boundary.
+
+    Returns:
+    int: The number of seconds until the next UTC minute.
+    """
     now = dt.datetime.now(dt.timezone.utc)
     next_minute = (now + dt.timedelta(minutes=1)).replace(second=0, microsecond=0)
     delta = next_minute - now
@@ -447,16 +479,27 @@ def get_security_type(ticker):
         return 'not_a_stock_or_index'
 
 def update_plot_axis_range(plot, relayoutData):
+    """
+    Updates the plot's axis ranges based on the zoom or pan state from the relayout data.
 
+    Parameters:
+    plot (str): The plot represented as a JSON string.
+    relayoutData (dict): A dictionary containing the new axis ranges, 
+                          such as the range for x and y axes, or autorange options.
+
+    Returns:
+    str: The updated plot in JSON format with adjusted axis ranges.
+    """
     if relayoutData is None:
         return plot
     
-    # If it can't find the key it will return None
+    # Extract axis range values from relayoutData
     xaxis_left = relayoutData.get("xaxis.range[0]")
     xaxis_right = relayoutData.get("xaxis.range[1]")
     yaxis_bottom = relayoutData.get("yaxis.range[0]")
     yaxis_top = relayoutData.get("yaxis.range[1]")
 
+    # Check if the axes have been zoomed or panned
     zoomed_or_panned = (xaxis_left != None and xaxis_right != None and yaxis_bottom != None and yaxis_top != None)
 
     if zoomed_or_panned:
@@ -471,6 +514,7 @@ def update_plot_axis_range(plot, relayoutData):
         )
         return pio.to_json(fig)
 
+    # Check if axes are set to autorange
     xaxis_autorange = relayoutData.get("xaxis.autorange")
     yaxis_autorange = relayoutData.get("yaxis.autorange")
     autoranged = (xaxis_autorange == True and yaxis_autorange == True and len(relayoutData) == 2)
@@ -491,7 +535,7 @@ def update_plot_axis_range(plot, relayoutData):
     xaxis_showspikes = relayoutData.get("xaxis.showspikes")
     yaxis_showspikes = relayoutData.get("yaxis.showspikes")
 
-
+    # Check if axes are reset (showspikes is False)
     axis_is_reset = (xaxis_showspikes == False and yaxis_showspikes == False)
 
     if axis_is_reset:
@@ -511,7 +555,21 @@ def update_plot_axis_range(plot, relayoutData):
     return plot
     
 def fetch_new_gex_snapshot(ticker, security_type):
+    """
+    Fetches the latest GEX (Gamma Exposure) snapshot for a given ticker and security type.
 
+    This function retrieves data from an API, calculates the GEX values for 
+    the given ticker, and generates a snapshot of the key GEX metrics along 
+    with the corresponding plot.
+
+    Parameters:
+    ticker (str): The ticker of the security.
+    security_type (str): The type of security (e.g., 'stocks' or 'indices').
+
+    Returns:
+    dict: A dictionary containing the GEX snapshot, including the plot and 
+          various GEX-related metrics.
+    """
     api_handler = API_Handler(api_key, ticker, security_type, STRIKE_LIMIT)
 
     api_handler.fetch_all_data_to_attributes()
