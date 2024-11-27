@@ -19,8 +19,17 @@ The program fetches live data from the yfinance API and calculates Gamma Exposur
 https://github.com/user-attachments/assets/9d74b34b-85c6-470d-a5d6-003cb57a032a
 
 <H2>Important</H2>
-To run the code you need a api key from the MarketData App API
 
+
+<H2>Limitations</H2>
+<ul>
+  <li>To run the code you need a api key from the MarketData App API</li>
+  <li>Restricted to NYSE tickers</li>
+  <li>Retrieves market data once per minute</li>
+</ul>
+
+<H2>Author</H2>
+<p>Created by Gustav Lundborg</p>
 
 
 
